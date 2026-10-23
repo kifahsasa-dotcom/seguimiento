@@ -123,7 +123,7 @@
     'code{font-size:.92em}',
     '.srcs{list-style:none;margin:8px 0;padding:0;display:grid;gap:10px}',
     '.src{border:1px solid var(--pt-line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}',
-    '.src p{margin:2px 0}.src-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}','.nowrap{white-space:nowrap}','.rec-code{width:9em;max-width:9em;overflow-wrap:anywhere}.rec-code code{white-space:normal}',
+    '.src p{margin:2px 0}.src-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}','.nowrap{white-space:nowrap}','.bars{display:grid;gap:6px;margin:8px 0}.bar-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr) 4em;gap:8px;align-items:center}.bar-track{background:var(--pt-soft,#eef2f5);border-radius:3px;height:12px;display:block}.bar-fill{display:block;height:12px;border-radius:3px;background:#2a78d6}.bar-fill.adapt,.key.adapt{background:#0b6e4f}.key{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle}.key.mit{background:#2a78d6}td.num,th.num,.num{text-align:right;font-variant-numeric:tabular-nums}.profile p{margin:6px 0}','.rec-code{width:9em;max-width:9em;overflow-wrap:anywhere}.rec-code code{white-space:normal}',
     '.pubs{list-style:none;margin:8px 0 6px;padding:0;display:grid;gap:8px}',
     '.pubs li{display:flex;gap:12px;align-items:center;border:1px solid var(--pt-line);border-radius:8px;padding:10px 12px}',
     '.pdf{flex:none;width:40px;height:48px;border-radius:4px;background:#c53030;color:#fff;font-weight:700;font-size:.72em;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;letter-spacing:.04em}',
@@ -440,7 +440,8 @@
     ['Meta', 'Valor que el instrumento se compromete a alcanzar en un a\u00f1o.'],
     ['NAP', 'Plan Nacional de Adaptaci\u00f3n al Cambio Clim\u00e1tico.'],
     ['PGCC', 'Plan de Acci\u00f3n Nacional sobre Igualdad de G\u00e9nero en la Acci\u00f3n por el Clima.'],
-    ['PNDIP', 'Plan Nacional de Desarrollo y de Inversi\u00f3n P\u00fablica.'],
+    ['Perfil de reporte', 'Resumen de qu\u00e9 informaci\u00f3n necesita cada pol\u00edtica para seguirse y calibrarse, qu\u00e9 falta y c\u00f3mo cerrarlo.'],
+    ['Listo para medirse', 'Indicador con meta, l\u00ednea de base, instituci\u00f3n responsable y fuente, que ya no es borrador.'],
     ['Por reportar', 'El indicador tiene meta pero todav\u00eda no le toca reportar o no hay dato.'],
     ['Trayectoria esperada', 'L\u00ednea entre la l\u00ednea base y las metas: indica cu\u00e1nto se esperaba en cada a\u00f1o.'],
     ['UTCUTS (FOLU)', 'Uso de la tierra, cambio de uso de la tierra y silvicultura: bosques, suelos y su captura o emisi\u00f3n de carbono.'],
@@ -485,7 +486,7 @@
 
   SinameccSeguimiento.prototype._url = function (kind, code) {
     var api = (this.getAttribute('api') || '').replace(/\/$/, '');
-    var staticKinds = { sources: 'fuentes.json', recs: 'recomendaciones.json', atlas: 'atlas_cantonal_2026.json' };
+    var staticKinds = { sources: 'fuentes.json', recs: 'recomendaciones.json', atlas: 'atlas_cantonal_2026.json', invest: 'inversion.json' };
     if (api && !staticKinds[kind]) {
       if (kind === 'index') return api + '/instruments/';
       if (kind === 'instrument') return api + '/instruments/' + encodeURIComponent(code) + '/';
@@ -573,6 +574,10 @@
       Promise.all([this._get('atlas'), this._get('index').catch(function () { return {}; })]).then(function (r) {
         self._index = r[1]; self._atlas = r[0]; done(self._renderCanton(r[0], self._cantonSlug || null));
       }, fail);
+    } else if (state.instrument === 'inversion') {
+      Promise.all([this._get('invest'), this._get('index').catch(function () { return {}; })]).then(function (r) {
+        self._index = r[1]; done(self._renderInvestment(r[0]));
+      }, fail);
     } else if (state.instrument === 'fuentes') {
       Promise.all([this._get('sources'), this._get('index').catch(function () { return {}; })]).then(function (r) {
         self._index = r[1]; done(self._renderSources(r[0], r[1]));
@@ -600,7 +605,7 @@
         '<span class="small">' + i.indicator_count + ' indicador' + (i.indicator_count === 1 ? '' : 'es') +
         ' \u00b7 Rector\u00eda: ' + esc(i.lead_institution) + '</span></button>';
     }).join('');
-    var reports = (data.publicaciones || []).filter(function (p) { return p.kind === 'dossier'; });
+    var reports = (data.publicaciones || []).filter(function (p) { return p.kind === 'dossier' || p.kind === 'investment'; });
     var downloads = this.getAttribute('downloads') !== 'false';
     var totals = { all: 0, values: 0 }, sum = {};
     (data.instrumentos || []).forEach(function (i) {
@@ -620,14 +625,17 @@
       '<p class="muted">Avance de los instrumentos de pol\u00edtica clim\u00e1tica de Costa Rica, con los datos reportados por las ' +
       'instituciones y validados por la Direcci\u00f3n de Cambio Clim\u00e1tico.</p>' + hero + legend() +
       '<div class="grid" style="margin-top:14px">' + (items || '<p class="muted">A\u00fan no hay instrumentos publicados.</p>') + '</div>' +
+      this._renderCoverage(data.cobertura) +
       (downloads && reports.length ? '<h3 id="publicaciones">Publicaciones</h3><p class="small muted">Un dossier de dos p\u00e1ginas por instrumento para quien decide, ' +
-        'generado con los mismos datos de este tablero cada vez que se publican. El informe de seguimiento completo est\u00e1 en la p\u00e1gina de cada instrumento.</p>' + this._pubList(reports) : '') +
+        'generado con los mismos datos de este tablero cada vez que se publican, y un dossier de inversi\u00f3n con el apoyo que necesita la CND. ' +
+        'El informe de seguimiento y el perfil de reporte de cada pol\u00edtica est\u00e1n en su p\u00e1gina.</p>' + this._pubList(reports) : '') +
       (downloads ? '<h3>Documentos oficiales</h3>' + this._docList(data.instrumentos) : '') +
       (downloads && this._base() ? '<h3>Datos abiertos</h3><p class="small muted">Archivos para descargar y reutilizar; se actualizan con cada publicaci\u00f3n.</p>' +
         this._dataList() : '') +
       '<h3>Fuentes de informaci\u00f3n</h3><p class="small muted">Los documentos oficiales y archivos de trabajo con que se aliment\u00f3 este tablero, qu\u00e9 se tom\u00f3 de cada uno y qu\u00e9 documentos faltan.</p>' +
       '<p class="btn-row"><button type="button" class="btn" data-go-instrument="fuentes">Ver las fuentes de informaci\u00f3n</button>' +
       '<button type="button" class="btn ghost" data-go-instrument="recomendaciones">Recomendaciones y mejoras</button>' +
+      '<button type="button" class="btn ghost" data-go-instrument="inversion">Inversi\u00f3n</button>' +
       '<button type="button" class="btn ghost" data-go-instrument="canton">Mi cant\u00f3n</button>' +
       '<button type="button" class="btn ghost" data-go-instrument="glosario">Glosario</button></p>' +
       '<h3>C\u00f3mo leer este tablero</h3><div class="method small">' +
@@ -815,10 +823,10 @@
       '<p class="muted small">Rector\u00eda: ' + esc(d.lead_institution) +
       (d.reporting_cycle_description ? ' \u00b7 Reporte: ' + esc(d.reporting_cycle_description) : '') +
       (d.official_document_url ? ' \u00b7 <a href="' + esc(d.official_document_url) + '" target="_blank" rel="noopener">Documento oficial</a>' : '') +
-      '</p>' + (this.getAttribute('downloads') !== 'false' ? this._pubList((d.publicaciones || []).filter(function (p) { return p.kind === 'report' || p.kind === 'dossier'; })) : '') +
+      '</p>' + (this.getAttribute('downloads') !== 'false' ? this._pubList((d.publicaciones || []).filter(function (p) { return p.kind === 'report' || p.kind === 'dossier' || p.kind === 'profile'; })) : '') +
       headlines +
       '<div class="summary" aria-label="Indicadores por estado">' + stats + '</div>' +
-      stackedBar(counts, 'Indicadores de ' + d.short_name) + coverage +
+      stackedBar(counts, 'Indicadores de ' + d.short_name) + coverage + this._renderProfile(d.perfil) +
       '<p class="muted small" style="margin-top:8px">\u00abEn tiempo\u00bb = avance de al menos ' + fmt(d.thresholds.on_track, 0) +
       ' % de lo esperado para el a\u00f1o; \u00aben riesgo\u00bb = desde ' + fmt(d.thresholds.at_risk, 0) + ' %; por debajo, \u00abatrasado\u00bb. ' +
       '\u00abVencido sin reporte\u00bb = el a\u00f1o de la meta ya pas\u00f3 sin dato.</p>' +
@@ -898,9 +906,10 @@
         '<td class="small">' + (r.instruments || []).map(function (c) { return esc(names[c] || c); }).join(', ') + '</td></tr>';
     }).join('');
     return '<button type="button" class="back" data-go-home>\u2190 Todos los instrumentos</button><span class="kicker">Rendici\u00f3n de cuentas</span>' +
-      '<h2>Recomendaciones y acciones de mejora</h2>' +
+      '<h2>Recomendaciones y hoja de ruta de mejora</h2>' +
       '<p class="muted">Lo que la revisi\u00f3n t\u00e9cnica internacional del primer BTR recomend\u00f3 a Costa Rica y en qu\u00e9 estado est\u00e1 cada punto. ' +
-      'Responsables y estados son una propuesta inicial que la Direcci\u00f3n de Cambio Clim\u00e1tico debe validar.</p>' +
+      'Responsables y estados son una propuesta inicial que la Direcci\u00f3n de Cambio Clim\u00e1tico debe validar. ' +
+      'Es la base de la hoja de ruta que pide el proyecto CBIT II (producto 3.1): se actualiza despu\u00e9s de cada revisi\u00f3n t\u00e9cnica; se esperan tres durante el proyecto.</p>' +
       (data.verdict ? '<blockquote class="quote">' + esc(data.verdict.text) + '<footer class="small muted">' + esc(data.source) + ', ' + esc(data.verdict.ref) + '</footer></blockquote>' : '') +
       '<div class="summary">' + ['abierta', 'en curso', 'atendida'].map(function (k) {
         return '<div class="stat"><b>' + (counts[k] || 0) + '</b><span class="small">' + recChip(k) + '</span></div>';
@@ -908,6 +917,77 @@
       '<div class="table-scroll"><table><thead><tr><th scope="col">C\u00f3digo</th><th scope="col">Recomendaci\u00f3n</th><th scope="col">Responsable propuesto</th>' +
       '<th scope="col">Plazo</th><th scope="col">Estado</th><th scope="col">Instrumento</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<p class="small muted">Fuente: ' + esc(data.source) + '.</p>';
+  };
+
+  SinameccSeguimiento.prototype._renderCoverage = function (cov) {
+    if (!cov || !cov.rows) return '';
+    var rows = cov.rows.map(function (r) {
+      return '<tr><td>' + (r.trackable ? '<button type="button" class="link" data-go-instrument="' + esc(r.code) + '">' + esc(r.short_name) + '</button>' : esc(r.short_name)) +
+        '</td><td class="num">' + fmt(r.indicators || 0, 0) + '</td><td class="num">' + fmt(r.with_target || 0, 0) + '</td><td class="num">' +
+        fmt(r.with_baseline || 0, 0) + '</td><td class="num">' + fmt(r.with_values || 0, 0) + '</td><td class="num">' + fmt(r.ready || 0, 0) + '</td></tr>';
+    }).join('');
+    return '<h3>\u00bfSe puede seguir cada pol\u00edtica?</h3>' +
+      '<p class="small muted">' + esc(cov.indicator) + ': <strong>' + cov.trackable + ' de ' + cov.priority + ' (' + cov.percent + ' %)</strong>. ' + esc(cov.note) +
+      ' <span>' + esc(cov.reference) + '.</span></p>' +
+      '<div class="table-scroll"><table><thead><tr><th scope="col">Pol\u00edtica</th><th scope="col" class="num">Indicadores</th><th scope="col" class="num">Con meta</th>' +
+      '<th scope="col" class="num">Con l\u00ednea de base</th><th scope="col" class="num">Con datos</th><th scope="col" class="num">Listos para medirse</th></tr></thead><tbody>' +
+      rows + '</tbody></table></div>';
+  };
+
+  SinameccSeguimiento.prototype._renderProfile = function (p) {
+    if (!p) return '';
+    var s = p.stats;
+    var list = function (items) { return '<ul>' + items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; };
+    return '<details class="acts profile"><summary>Perfil de reporte de la pol\u00edtica</summary>' +
+      '<p class="small muted">' + esc(p.reference) + '.</p>' +
+      '<p><strong>Pregunta que debe responder el seguimiento.</strong> ' + esc(p.question) + '</p>' +
+      '<p><strong>Para seguir la implementaci\u00f3n.</strong> ' + esc(p.steering) + '</p>' +
+      '<p><strong>Para calibrar la pol\u00edtica.</strong> ' + esc(p.calibration) + '</p>' +
+      '<p><strong>Calidad del marco de seguimiento.</strong> ' + esc(p.me_calibration) + '</p>' +
+      '<p><strong>Enfoque de g\u00e9nero.</strong> ' + esc(p.gender) + '</p>' +
+      (p.top_overdue && p.top_overdue.length ? '<p><strong>Instituciones con m\u00e1s indicadores vencidos:</strong> ' +
+        p.top_overdue.map(function (r) { return esc(r.institution) + ' (' + r.count + ')'; }).join(', ') + '.</p>' : '') +
+      (p.missing_documents && p.missing_documents.length ? '<p><strong>Brechas de informaci\u00f3n.</strong></p>' + list(p.missing_documents.map(function (d) {
+        return d.title + ' (' + d.holder + '): ' + d.why; })) : '') +
+      (p.proposals && p.proposals.length ? '<p><strong>Propuestas para cerrar las brechas.</strong></p>' + list(p.proposals) : '') +
+      (p.open_recommendations && p.open_recommendations.length ? '<p class="small">Recomendaciones abiertas que la tocan: ' + esc(p.open_recommendations.join(', ')) +
+        '. <button type="button" class="link" data-go-instrument="recomendaciones">Ver la hoja de ruta</button></p>' : '') +
+      '<p class="small muted">' + fmt(s.ready, 0) + ' de ' + fmt(s.indicators, 0) + ' indicadores listos para medirse. Las propuestas son una base para que la DCC y las instituciones acuerden el perfil definitivo.</p></details>';
+  };
+
+  SinameccSeguimiento.prototype._renderInvestment = function (inv) {
+    var m = inv.mitigation || {}, a = inv.adaptation || {};
+    var axes = (inv.by_axis || []).map(function (x) {
+      return '<tr><td>' + esc(x.axis) + '</td><td>' + esc(x.kind) + '</td><td class="num">' + x.count + '</td><td class="num">' + fmt(x.cost_musd, 1) + '</td></tr>';
+    }).join('');
+    var cond = (inv.conditional || []).map(function (c) {
+      return '<tr><td class="small"><code>' + esc(c.code) + '</code></td><td>' + esc(c.name) + '</td><td class="num">' + fmt(c.cost_musd, 1) + '</td></tr>';
+    }).join('');
+    var max = Math.max.apply(null, (inv.by_axis || []).map(function (x) { return x.cost_musd; }).concat([1]));
+    var bars = (inv.by_axis || []).slice(0, 10).map(function (x) {
+      return '<div class="bar-row"><span class="small">' + esc(x.axis) + '</span><span class="bar-track"><span class="bar-fill ' + (x.kind === 'adaptaci\u00f3n' ? 'adapt' : '') +
+        '" style="width:' + Math.max(1, 100 * x.cost_musd / max).toFixed(1) + '%"></span></span><span class="small num">' + fmt(x.cost_musd, 0) + '</span></div>';
+    }).join('');
+    var received = inv.received || {};
+    return '<button type="button" class="back" data-go-home>\u2190 Todos los instrumentos</button><span class="kicker">Inversi\u00f3n y apoyo</span>' +
+      '<h2>' + esc(inv.title) + '</h2>' +
+      '<p>La CND estima un costo de <strong>USD ' + fmt(inv.total_musd, 1) + ' millones</strong> para sus ' + inv.contributions_with_cost +
+      ' contribuciones: USD ' + fmt(m.total_musd, 1) + ' millones en mitigaci\u00f3n y USD ' + fmt(a.total_musd, 1) + ' millones en adaptaci\u00f3n. ' +
+      'En mitigaci\u00f3n, USD ' + fmt(m.conditional_musd, 1) + ' millones (' + m.conditional_count + ' contribuciones) dependen de apoyo internacional.</p>' +
+      this._pubList(inv.publicaciones) +
+      '<div class="figures"><div><span class="small muted">Costo total</span><b>' + fmt(inv.total_musd, 1) + '</b><span class="small muted">millones de USD</span></div>' +
+      '<div><span class="small muted">Mitigaci\u00f3n condicional</span><b>' + fmt(m.conditional_musd, 1) + '</b><span class="small muted">' + m.conditional_count + ' contribuciones</span></div>' +
+      '<div><span class="small muted">Mitigaci\u00f3n incondicional</span><b>' + fmt(m.unconditional_musd, 1) + '</b><span class="small muted">' + m.unconditional_count + ' contribuciones</span></div>' +
+      '<div><span class="small muted">Adaptaci\u00f3n</span><b>' + fmt(a.total_musd, 1) + '</b><span class="small muted">' + a.count + ' contribuciones</span></div></div>' +
+      '<h3>Los diez ejes con m\u00e1s costo</h3><div class="bars" role="img" aria-label="Costo por eje en millones de USD">' + bars + '</div>' +
+      '<p class="small muted"><span class="key mit"></span> mitigaci\u00f3n \u00b7 <span class="key adapt"></span> adaptaci\u00f3n. Millones de USD.</p>' +
+      '<h3>Costo por eje</h3><div class="table-scroll"><table><thead><tr><th scope="col">Eje</th><th scope="col">Tipo</th><th scope="col" class="num">Contribuciones</th><th scope="col" class="num">M USD</th></tr></thead><tbody>' + axes + '</tbody></table></div>' +
+      '<h3>Contribuciones de mitigaci\u00f3n que necesitan apoyo internacional</h3><div class="table-scroll"><table><thead><tr><th scope="col">C\u00f3digo</th><th scope="col">Contribuci\u00f3n</th><th scope="col" class="num">M USD</th></tr></thead><tbody>' + cond + '</tbody></table></div>' +
+      '<h3>Apoyo recibido</h3><div class="notice small">' + esc(received.text || '') + ' ' + (received.pending || []).map(function (d) {
+        return 'Falta: ' + esc(d.title) + ' (' + esc(d.holder) + ').'; }).join(' ') +
+      ' <button type="button" class="link" data-go-instrument="fuentes">Ver documentos pendientes</button></div>' +
+      '<h3>L\u00edmites de esta informaci\u00f3n</h3><ul class="small">' + (inv.notes || []).map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' +
+      '<p class="small muted">Fuente: ' + esc(inv.source) + ' ' + esc(inv.reference) + '.</p>';
   };
 
   SinameccSeguimiento.prototype._renderCanton = function (atlas, wanted) {
@@ -931,7 +1011,6 @@
     };
     var idh = pick.IDH || {};
     var detail = { name: 'IDH de ' + pick.canton, unit: '\u00edndice', values: Object.keys(idh).map(function (y) { return { year: Number(y), value: idh[y] }; }) };
-    var pndip = (this._index && (this._index.instrumentos || []).filter(function (i) { return i.code === 'pndip-2027-2030'; })[0]);
     return '<button type="button" class="back" data-go-home>\u2190 Todos los instrumentos</button><span class="kicker">Pertinencia local</span>' +
       '<h2>Mi cant\u00f3n: ' + esc(pick.canton) + '</h2>' +
       '<div class="toolbar"><label for="canton">Cant\u00f3n</label><select id="canton" data-canton>' + options + '</select></div>' +
@@ -942,7 +1021,6 @@
       chart(detail, this._charts) +
       '<h3>Acci\u00f3n clim\u00e1tica en el territorio</h3>' +
       '<div class="notice small">Los planes cargados todav\u00eda no ubican sus acciones por cant\u00f3n. ' +
-      (pndip ? 'El PNDIP 2027\u20132030 indica la regi\u00f3n de algunas intervenciones (carbono azul en Chorotega, Brunca y Pac\u00edfico Central; medidores inteligentes en la Regi\u00f3n Central y Huetar Norte; ecosistemas marino-costeros del Pac\u00edfico y el Caribe). ' : '') +
       'La ubicaci\u00f3n de las acciones por cant\u00f3n est\u00e1 registrada como documento pendiente en <button type="button" class="link" data-go-instrument="fuentes">Fuentes de informaci\u00f3n</button>.</div>' +
       '<p class="small">El \u00cdndice de Desigualdad de G\u00e9nero ayuda a priorizar las acciones del <button type="button" class="link" data-go-instrument="pgcc">Plan de G\u00e9nero y Cambio Clim\u00e1tico</button> en el territorio.</p>' +
       '<p class="small muted">Fuente: ' + esc(atlas.source) + '.</p>';
