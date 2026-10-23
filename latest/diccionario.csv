@@ -1,0 +1,65 @@
+﻿archivo,columna,descripcion
+instrumentos,codigo,Código estable del instrumento
+instrumentos,nombre,Nombre oficial
+instrumentos,nombre_corto,Nombre corto
+instrumentos,tipo,Tipo de instrumento
+instrumentos,institucion_rectora,Código de la institución rectora
+instrumentos,anio_inicio,Año de inicio de la vigencia
+instrumentos,anio_fin,Año de fin de la vigencia
+instrumentos,url_documento,Enlace al documento oficial
+instrumentos,umbral_en_tiempo,Avance mínimo (%) para clasificar «en tiempo»
+instrumentos,umbral_riesgo,Avance mínimo (%) para clasificar «en riesgo»; por debajo es «atrasado»
+componentes,instrumento,Código del instrumento
+componentes,codigo,Código oficial del componente dentro del instrumento
+componentes,codigo_padre,Código del componente superior (vacío = nivel superior)
+componentes,nivel,"Eje, meta, contribución, acción, medida o intervención"
+componentes,nombre,Nombre del componente
+componentes,estado_mpg,"Estado según las MPG: planned, adopted o implemented"
+componentes,sectores_ipcc,Sectores del IPCC 2006 (separados por coma)
+componentes,gases,Gases de efecto invernadero (separados por coma)
+indicadores,codigo,Código único del indicador
+indicadores,nombre,Nombre del indicador
+indicadores,definicion,Definición
+indicadores,unidad,Unidad de medida
+indicadores,sentido,"Sentido deseado: increase, decrease o maintain"
+indicadores,periodicidad,Periodicidad de medición
+indicadores,linea_base,Valor de la línea base
+indicadores,anio_linea_base,Año de la línea base
+indicadores,fuente_linea_base,Documento del que sale la línea base
+indicadores,nota_linea_base,Aclaración sobre la línea base (por ejemplo «no aplica» o «por definir»)
+indicadores,institucion_responsable,Código de la institución que reporta
+indicadores,fuente_primaria,Fuente primaria del dato
+indicadores,pcg,Juego de potenciales de calentamiento global usado (si aplica)
+indicadores,desagregaciones_disponibles,Dimensiones con dato desagregado disponible
+indicadores,instrumentos,Códigos de los instrumentos donde se usa el indicador
+indicadores,componentes,Instrumento:componente donde se usa el indicador
+indicadores,genero,Verdadero si es un indicador del Plan de Acción de Género y Cambio Climático
+metas,indicador,Código del indicador
+metas,anio,Año de la meta
+metas,valor,Valor esperado
+metas,tipo,"absolute, relative o cumulative"
+metas,fuente,Documento que fija la meta
+valores,indicador,Código del indicador
+valores,anio,Año del dato
+valores,etiqueta_periodo,"Periodo distinto del año, si aplica (por ejemplo 2027-S1)"
+valores,desagregacion,Dimensión=valor; vacío = total nacional
+valores,valor,Valor aceptado por la DCC
+valores,unidad,Unidad de medida
+valores,motivo_sin_dato,"Por qué no hay valor, cuando falta"
+valores,version,Versión del dato; sube con cada corrección aceptada
+valores,fecha_aceptacion,Fecha en que la DCC aceptó el dato
+valores,nota,Origen o aclaración del dato
+series_referencia,indicador,Código del indicador
+series_referencia,serie,Nombre de la trayectoria
+series_referencia,tipo,"historical (histórico), estimate (estimación) o scenario (escenario)"
+series_referencia,anio,Año
+series_referencia,valor,Valor de la trayectoria; no es un dato reportado ni cuenta para el avance
+series_referencia,fuente,Documento del que sale la trayectoria
+avance,instrumento,Código del instrumento
+avance,indicador,Código del indicador
+avance,anio,Último año con dato aceptado
+avance,valor,Valor de ese año
+avance,meta,Meta para ese año (interpolada si no hay meta exacta)
+avance,avance_porcentaje,Avance respecto a lo esperado para el año
+avance,estado,"on_track, at_risk, delayed, no_data o no_target"
+avance,clasificacion_mideplan,"Rango anual de MIDEPLAN: Alto, Medio-Alto, Medio o Bajo"
